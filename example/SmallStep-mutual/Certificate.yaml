@@ -1,0 +1,28 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: httpbin-m-certificate
+  namespace: istio-system
+spec:
+  # The secret name to store the signed certificate
+  secretName: httpbin-m-secret
+  # Common Name
+  commonName: "*.example.com"
+  # DNS SAN
+  dnsNames:
+    - localhost
+    - "dev.internal"
+    - "dev.local"
+    - "*.example.com"
+  # IP Address SAN
+  #ipAddresses:
+  #  - "127.0.0.1"
+  # Duration of the certificate
+  duration: 24h
+  # Renew 8 hours before the certificate expiration
+  renewBefore: 8h
+  # The reference to the step issuer
+  issuerRef:
+    group: certmanager.step.sm
+    kind: CertificateRequest
+    name: step-issuer
