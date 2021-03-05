@@ -16,8 +16,12 @@ In the following example, I will show how to setup a cert-manager with a smallst
 ```
 istioctl install --set profile=demo 
 ```
-
-## Procedure
+## Atomical installation
+Clone repo, the run:
+```
+chmod +x setup.sh; ./setup.sh --name-space=istio-system
+```
+## Manual Procedure
 ### 1. Install crt-manager on kubernetes cluster
 ```
 kubectl apply  -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml
@@ -96,6 +100,9 @@ EOF
 ```
 ## Test
 Clone repo:
+```
+git clone https://github.com/Gershon-A/ISTIO-cert-manager-and-smallstep-ca
+```
 - Create namespace with ISTIO sidecar
 ```
 kubectl.exe apply -f example/SmallStep-mutual/namespace.yaml 
@@ -210,3 +217,5 @@ curl  -v --resolve "httpbin-m.example.com:443:$INGRESS_HOST" --cert tmp/cert-dev
       \_     _/
         `"""`
 ```
+### Buy me a Coffee :) 
+ETH: 0x1Fa418c70C5f14b21D00c242Bf369A875F129d12

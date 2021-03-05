@@ -1,0 +1,18 @@
+apiVersion: certmanager.step.sm/v1beta1
+kind: StepIssuer
+metadata:
+  name: step-issuer
+  namespace: NAME_SPACE
+spec:
+  # The CA URL.
+  url: CAURL
+  # The base64 encoded version of the CA root certificate in PEM format.
+  # Created automatically when the "smallstep" installed configmaps/step-certificates-certs
+  caBundle:  CABANDLE
+  # The provisioner name, kid, and a reference to the provisioner password secret.
+  provisioner:
+    name: admin
+    kid: KID
+    passwordRef:
+      name: step-certificates-provisioner-password # Do not change the name
+      key: password
