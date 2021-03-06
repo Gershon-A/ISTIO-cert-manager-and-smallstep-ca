@@ -150,27 +150,7 @@ jobs:
 workflows:
 
   integration-tests_prod-release:
-    when: << pipeline.parameters.run-integration-tests >>
     jobs:
       - integration-test-docker
       - integration-test-machine
       - integration-test-macos
-      - integration-test-kubectl
-
-      - orb-tools/dev-promote-prod-from-commit-subject:
-          orb-name: circleci/kubernetes
-          context: orb-publishing
-          add-pr-comment: true
-          fail-if-semver-not-indicated: true
-          publish-version-tag: true
-          bot-token-variable: GHI_TOKEN
-          bot-user: cpe-bot
-          ssh-fingerprints: e0:f8:4b:34:54:de:74:23:af:7e:3d:39:28:cb:2f:7d
-          requires:
-            - integration-test-docker
-            - integration-test-machine
-            - integration-test-macos
-            - integration-test-kubectl
-          filters:
-            branches:
-              only: master
