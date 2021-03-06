@@ -54,6 +54,23 @@ commands:
           command: |
             [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
 jobs:
+  integration-test-docker:
+    executor: ci-base
+    environment:
+      # For testing the install-kubeconfig command
+      MY_KUBECONFIG_DATA: dGVzdA==
+    steps:
+      - kube-orb/install-kubectl
+      - integration-tests
+  integration-test-machine:
+    executor: machine
+    environment:
+      # For testing the install-kubeconfig command
+      KUBECONFIG_DATA: dGVzdA==
+    steps:
+      - kube-orb/install-kubectl
+      - integration-tests
+
   deploy:
     executor: ci-base
     steps:
