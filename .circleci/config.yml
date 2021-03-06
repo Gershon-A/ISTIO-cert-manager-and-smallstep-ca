@@ -2,168 +2,24 @@ version: 2.1
 
 orbs:
   orb-tools: circleci/orb-tools@9.2.1
-  kubernetes: circleci/kubernetes@0.11.2
-
-# Pipeline parameters
-parameters:
-  # These pipeline parameters are required by the "trigger-integration-tests-workflow"
-  # job, by default.
-  run-integration-tests:
-    type: boolean
-    default: false
-  dev-orb-version:
-    type: string
-    default: "dev:alpha"
-
-executors:
-  ci-base:
-    docker:
-      - image: cimg/base:stable
-
-  machine:
-    machine: true
-
-  minikube:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      CHANGE_MINIKUBE_NONE_USER=true
-
-  macos:
-    macos:
-      xcode: "10.1.0"
-
-commands:
-  start-minikube:
-    steps:
-      - run:
-          name: Start minikube
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y conntrack
-            curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
-              && chmod +x minikube
-            sudo cp minikube /usr/local/bin && rm minikube
-            sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
-      - run:            
-          name: Install HELM
-          command: |
-            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
-              && chmod 700 get_helm.sh
-            ./get_helm.sh    
-  integration-tests:
-    steps:
-      - checkout
-      - kubernetes/install
-      - run:
-          name: Test kops
-          command: kops version
-      - run:
-          name: Test kubectl
-          command: kubectl
-      - kubernetes/install-kubeconfig:
-          kubeconfig: MY_KUBECONFIG_DATA
-      - run:
-          name: Test kubeconfig output
-          command: |
-            [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
-  integration-tests-specific-version:
-    steps:
-      - checkout
-      - kubernetes/install:
-          kubectl-version: v1.15.2
-          kops-version: 1.12.2
-      - run:
-          name: Test kops version
-          command: kops version | grep "1.12.2"
-      - run:
-          name: Test kubectl version
-          command: |
-            set +e
-            # ignore connection refused error
-            KUBECTL_VERSION=$(kubectl version)
-            set -e
-            echo $KUBECTL_VERSION | grep "v1.15.2"
-      - kubernetes/install-kubeconfig
-      - run:
-          name: Test kubeconfig output
-          command: |
-            [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
+  kube-orb: circleci/kubernetes@0.11.2
 
 jobs:
-  integration-test-docker:
-    executor: ci-base
-    environment:
-      # For testing the install-kubeconfig command
-      MY_KUBECONFIG_DATA: dGVzdA==
+  deploy:
+    docker:
+      - image: 'cimg/base:stable'
     steps:
-      - integration-tests
-
-  integration-test-machine:
-    executor: machine
-    environment:
-      # For testing the install-kubeconfig command
-      KUBECONFIG_DATA: dGVzdA==
-    steps:
-      - integration-tests-specific-version
-
-  integration-test-macos:
-    executor: macos
-    environment:
-      # For testing the install-kubeconfig command
-      MY_KUBECONFIG_DATA: dGVzdA==
-    steps:
-      - integration-tests
-  shell:
-    executor: machine
-    steps:
+      - kube-orb/install-kubectl
       - checkout
-      - run: chmod +x setup.sh; ./setup.sh --name-space=istio-system
-
+      - run:
+          name: Deploy
+          command: chmod +x setup.sh; ./setup.sh --name-space=istio-system
 
 workflows:
-  lint_pack-validate_publish-dev:
-    unless: << pipeline.parameters.run-integration-tests >>
+  version: 2
+  build-master:
     jobs:
-      - orb-tools/lint
-
-      - orb-tools/pack:
-          requires:
-            - orb-tools/lint
-
-      - orb-tools/publish-dev:
-          orb-name: circleci/kubernetes
-          context: orb-publishing
-          requires:
-            - orb-tools/pack
-
-      - orb-tools/trigger-integration-tests-workflow:
-          name: trigger-integration-dev
-          context: orb-publishing
-          requires:
-            - orb-tools/publish-dev
-
-  integration-tests_prod-release:
-    when: << pipeline.parameters.run-integration-tests >>
-    jobs:
-      - integration-test-docker
-      - integration-test-machine
-      - integration-test-macos
-      - shell
-
-      - orb-tools/dev-promote-prod-from-commit-subject:
-          orb-name: circleci/kubernetes
-          context: orb-publishing
-          add-pr-comment: true
-          fail-if-semver-not-indicated: true
-          publish-version-tag: true
-          bot-token-variable: GHI_TOKEN
-          bot-user: cpe-bot
-          ssh-fingerprints: e0:f8:4b:34:54:de:74:23:af:7e:3d:39:28:cb:2f:7d
-          requires:
-            - integration-test-docker
-            - integration-test-machine
-            - integration-test-macos
+      - deploy:
           filters:
             branches:
               only: master
