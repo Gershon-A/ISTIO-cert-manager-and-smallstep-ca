@@ -45,6 +45,12 @@ commands:
               && chmod +x minikube
             sudo cp minikube /usr/local/bin && rm minikube
             sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
+      - run:            
+          name: Install HELM
+          command: |
+            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
+              && chmod 700 get_helm.sh
+            ./get_helm.sh    
   integration-tests:
     steps:
       - checkout
@@ -108,44 +114,12 @@ jobs:
       MY_KUBECONFIG_DATA: dGVzdA==
     steps:
       - integration-tests
-
-  integration-test-kubectl:
-    executor: minikube
+  shell:
+    executor: machine
     steps:
       - checkout
-      - kubernetes/install-kubectl
-      - start-minikube
-      - kubernetes/create-or-update-resource:
-          resource-file-path: "tests/nginx-deployment/deployment.yaml"
-          resource-name: "deployment/nginx-deployment"
-          get-rollout-status: true
-          show-kubectl-command: true
-      - kubernetes/update-container-image:
-          resource-name: "deployment/nginx-deployment"
-          container-image-updates: "nginx=nginx:1.9.1 redis=redis:5-buster"
-          record: true
-      - kubernetes/get-rollout-status:
-          resource-name: "deployment/nginx-deployment"
-          watch-rollout-status: true
-      - kubernetes/rollback:
-          resource-name: "deployment/nginx-deployment"
-          get-rollout-status: true
-      - kubernetes/delete-resource:
-          resource-types: "deployments"
-          resource-names: "nginx-deployment"
-          now: true
-          wait: true
-      - kubernetes/create-or-update-resource:
-          resource-file-path: "tests/kustomize/overlays/staging"
-          resource-name: "deployment/staging-hello"
-          kustomize: true
-          get-rollout-status: true
-          show-kubectl-command: true
-      - kubernetes/delete-resource:
-          resource-file-path: "tests/kustomize/overlays/staging"
-          kustomize: true
-          now: true
-          wait: true
+      - run: chmod +x setup.sh; ./setup.sh --name-space=istio-system
+
 
 workflows:
   lint_pack-validate_publish-dev:
@@ -175,7 +149,7 @@ workflows:
       - integration-test-docker
       - integration-test-machine
       - integration-test-macos
-      - integration-test-kubectl
+      - shell
 
       - orb-tools/dev-promote-prod-from-commit-subject:
           orb-name: circleci/kubernetes
@@ -190,7 +164,6 @@ workflows:
             - integration-test-docker
             - integration-test-machine
             - integration-test-macos
-            - integration-test-kubectl
           filters:
             branches:
               only: master
