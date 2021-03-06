@@ -3,7 +3,36 @@ version: 2.1
 orbs:
   orb-tools: circleci/orb-tools@9.2.1
   kube-orb: circleci/kubernetes@0.11.2
+executors:
+  ci-base:
+    docker:
+      - image: cimg/base:stable
 
+  machine:
+    machine: true
+
+  minikube:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      CHANGE_MINIKUBE_NONE_USER=true
+
+  macos:
+    macos:
+      xcode: "10.1.0"
+
+commands:
+  start-minikube:
+    steps:
+      - run:
+          name: Start minikube
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y conntrack
+            curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+              && chmod +x minikube
+            sudo cp minikube /usr/local/bin && rm minikube
+            sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
 jobs:
   deploy:
     docker:
