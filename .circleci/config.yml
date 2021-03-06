@@ -11,6 +11,48 @@ executors:
   machine:
     machine: true
 
+  minikube:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      CHANGE_MINIKUBE_NONE_USER=true
+
+commands:
+  start-minikube:
+    steps:
+      - run:
+          name: Start minikube
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y conntrack
+            curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+              && chmod +x minikube
+            sudo cp minikube /usr/local/bin && rm minikube
+            sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
+  install-helm:
+    steps:
+      - run:
+          name: Install Helm
+          command: |
+            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
+              && chmod 700 get_helm.sh
+            ./get_helm.sh
+  integration-tests:
+    steps:
+      - checkout
+      - kubernetes/install
+      - run:
+          name: Test kops
+          command: kops version
+      - run:
+          name: Test kubectl
+          command: kubectl
+      - kubernetes/install-kubeconfig:
+          kubeconfig: MY_KUBECONFIG_DATA
+      - run:
+          name: Test kubeconfig output
+          command: |
+            [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
 jobs:
   deploy:
     executor: ci-base
