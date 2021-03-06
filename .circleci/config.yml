@@ -142,6 +142,8 @@ jobs:
           name: Deploy script
           command: |
             ls -l; chmod +x setup.sh
+            echo "Wait 20s and Checking if installed"
+            for i in {0..20}; do echo -ne "$i"'\r'; sleep 1; done; echo 
             kubectl get nodes
             ./setup.sh --name-space=istio-system
 
@@ -153,4 +155,4 @@ workflows:
       - integration-test-helm
       - integration-test-docker
       - integration-test-machine
-      - integration-test-kubectl
+#      - integration-test-kubectl
