@@ -126,12 +126,13 @@ jobs:
   integration-test-helm:
     executor: machine
     steps:
+      - install-helm
       - run:
           name: Check helm version
           command: |
             helm version
   deploy:
-    executor: machine
+    executor: minikube
     steps:
       - checkout
       - kubernetes/install-kubectl
