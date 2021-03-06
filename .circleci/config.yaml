@@ -78,12 +78,11 @@ jobs:
       - checkout
       - run:
           name: Deploy
-          command: chmod +x setup.sh; ./setup.sh --name-space=istio-system
+          command: ls -l; chmod +x setup.sh; ./setup.sh --name-space=istio-system
      
 workflows:
-  test:
-    jobs:
-      - integration-test-machine
+  version: 2
   build-and-deploy:
     jobs:
+      - integration-test-machine
       - deploy
