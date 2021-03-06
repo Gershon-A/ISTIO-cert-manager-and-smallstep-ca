@@ -59,7 +59,7 @@ commands:
           name: Install ISTIO 
           command: |
             curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.8.3 sh - && \
-            cd istio-ISTIO_VERSION && \
+            cd istio-1.8.3 && \
             cp ./bin/istioctl /usr/local/bin/istioctl && \
             chmod +x /usr/local/bin/istioctl
             istioctl install --set profile=demo -y                      
