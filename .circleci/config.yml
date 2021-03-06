@@ -56,9 +56,12 @@ commands:
   install-istio:
     steps:
       - run:
-          name: Install Helm 
+          name: Install ISTIO 
           command: |
-            curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.8.3 sh - \
+            curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.8.3 sh - && \
+            cd istio-ISTIO_VERSION && \
+            cp ./bin/istioctl /usr/local/bin/istioctl && \
+            chmod +x /usr/local/bin/istioctl
             istioctl install --set profile=demo -y                      
   integration-tests:
     steps:
