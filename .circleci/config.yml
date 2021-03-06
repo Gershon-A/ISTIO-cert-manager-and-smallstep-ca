@@ -45,6 +45,14 @@ commands:
               && chmod +x minikube
             sudo cp minikube /usr/local/bin && rm minikube
             sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
+  install-helm:
+    steps:
+      - run:
+          name: Install Helm 
+          command: |
+            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3\
+              && chmod 700 get_helm.sh
+            ./get_helm.sh          
   integration-tests:
     steps:
       - checkout
@@ -126,6 +134,9 @@ jobs:
     executor: machine
     steps:
       - checkout
+      - kubernetes/install-kubectl
+      - install-helm
+      - start-minikube
       - run:
           name: Deploy script
           command: |
