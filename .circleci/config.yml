@@ -58,10 +58,9 @@ commands:
       - run:
           name: Install ISTIO 
           command: |
-            curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.8.3 sh - && \
-            cd istio-1.8.3 && \
-            cp ./bin/istioctl /usr/local/bin/istioctl && \
-            chmod +x /usr/local/bin/istioctl
+            curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.8.3 sh - \
+             && cd istio-1.8.3
+            cp ./bin/istioctl /usr/local/bin/istioctl && chmod +x /usr/local/bin/istioctl
             istioctl install --set profile=demo -y                      
   integration-tests:
     steps:
@@ -163,7 +162,7 @@ workflows:
   integration-tests_prod-release:
     jobs:
       - deploy
-      - integration-test-helm
-      - integration-test-docker
-      - integration-test-machine
+#      - integration-test-helm
+#      - integration-test-docker
+#      - integration-test-machine
 #      - integration-test-kubectl
