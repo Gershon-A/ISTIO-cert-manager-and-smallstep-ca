@@ -4,10 +4,22 @@ orbs:
   orb-tools: circleci/orb-tools@9.2.1
   kubernetes: circleci/kubernetes@0.11.2
 
+# Pipeline parameters
+parameters:
+  # These pipeline parameters are required by the "trigger-integration-tests-workflow"
+  # job, by default.
+  run-integration-tests:
+    type: boolean
+    default: false
+  dev-orb-version:
+    type: string
+    default: "dev:alpha"
+
 executors:
   ci-base:
     docker:
       - image: cimg/base:stable
+
   machine:
     machine: true
 
@@ -16,6 +28,10 @@ executors:
       image: ubuntu-1604:201903-01
     environment:
       CHANGE_MINIKUBE_NONE_USER=true
+
+  macos:
+    macos:
+      xcode: "10.1.0"
 
 commands:
   start-minikube:
@@ -29,14 +45,6 @@ commands:
               && chmod +x minikube
             sudo cp minikube /usr/local/bin && rm minikube
             sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
-  install-helm:
-    steps:
-      - run:
-          name: Install Helm
-          command: |
-            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
-              && chmod 700 get_helm.sh
-            ./get_helm.sh
   integration-tests:
     steps:
       - checkout
@@ -53,6 +61,29 @@ commands:
           name: Test kubeconfig output
           command: |
             [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
+  integration-tests-specific-version:
+    steps:
+      - checkout
+      - kubernetes/install:
+          kubectl-version: v1.15.2
+          kops-version: 1.12.2
+      - run:
+          name: Test kops version
+          command: kops version | grep "1.12.2"
+      - run:
+          name: Test kubectl version
+          command: |
+            set +e
+            # ignore connection refused error
+            KUBECTL_VERSION=$(kubectl version)
+            set -e
+            echo $KUBECTL_VERSION | grep "v1.15.2"
+      - kubernetes/install-kubeconfig
+      - run:
+          name: Test kubeconfig output
+          command: |
+            [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
+
 jobs:
   integration-test-docker:
     executor: ci-base
@@ -60,28 +91,106 @@ jobs:
       # For testing the install-kubeconfig command
       MY_KUBECONFIG_DATA: dGVzdA==
     steps:
-      - kubernetes/install-kubectl
       - integration-tests
+
   integration-test-machine:
     executor: machine
     environment:
       # For testing the install-kubeconfig command
       KUBECONFIG_DATA: dGVzdA==
     steps:
-      - kubernetes/install-kubectl
+      - integration-tests-specific-version
+
+  integration-test-macos:
+    executor: macos
+    environment:
+      # For testing the install-kubeconfig command
+      MY_KUBECONFIG_DATA: dGVzdA==
+    steps:
       - integration-tests
 
-  deploy:
-    executor: ci-base
+  integration-test-kubectl:
+    executor: minikube
     steps:
-      - kubernetes/install-kubectl
       - checkout
-      - run:
-          name: Deploy
-          command: ls -l; chmod +x setup.sh; ./setup.sh --name-space=istio-system
-     
+      - kubernetes/install-kubectl
+      - start-minikube
+      - kubernetes/create-or-update-resource:
+          resource-file-path: "tests/nginx-deployment/deployment.yaml"
+          resource-name: "deployment/nginx-deployment"
+          get-rollout-status: true
+          show-kubectl-command: true
+      - kubernetes/update-container-image:
+          resource-name: "deployment/nginx-deployment"
+          container-image-updates: "nginx=nginx:1.9.1 redis=redis:5-buster"
+          record: true
+      - kubernetes/get-rollout-status:
+          resource-name: "deployment/nginx-deployment"
+          watch-rollout-status: true
+      - kubernetes/rollback:
+          resource-name: "deployment/nginx-deployment"
+          get-rollout-status: true
+      - kubernetes/delete-resource:
+          resource-types: "deployments"
+          resource-names: "nginx-deployment"
+          now: true
+          wait: true
+      - kubernetes/create-or-update-resource:
+          resource-file-path: "tests/kustomize/overlays/staging"
+          resource-name: "deployment/staging-hello"
+          kustomize: true
+          get-rollout-status: true
+          show-kubectl-command: true
+      - kubernetes/delete-resource:
+          resource-file-path: "tests/kustomize/overlays/staging"
+          kustomize: true
+          now: true
+          wait: true
+
 workflows:
-  version: 2
-  build-and-deploy:
+  lint_pack-validate_publish-dev:
+    unless: << pipeline.parameters.run-integration-tests >>
     jobs:
-      - deploy
+      - orb-tools/lint
+
+      - orb-tools/pack:
+          requires:
+            - orb-tools/lint
+
+      - orb-tools/publish-dev:
+          orb-name: circleci/kubernetes
+          context: orb-publishing
+          requires:
+            - orb-tools/pack
+
+      - orb-tools/trigger-integration-tests-workflow:
+          name: trigger-integration-dev
+          context: orb-publishing
+          requires:
+            - orb-tools/publish-dev
+
+  integration-tests_prod-release:
+    when: << pipeline.parameters.run-integration-tests >>
+    jobs:
+      - integration-test-docker
+      - integration-test-machine
+      - integration-test-macos
+      - integration-test-kubectl
+
+      - orb-tools/dev-promote-prod-from-commit-subject:
+          orb-name: circleci/kubernetes
+          context: orb-publishing
+          add-pr-comment: true
+          fail-if-semver-not-indicated: true
+          publish-version-tag: true
+          bot-token-variable: GHI_TOKEN
+          bot-user: cpe-bot
+          ssh-fingerprints: e0:f8:4b:34:54:de:74:23:af:7e:3d:39:28:cb:2f:7d
+          requires:
+            - integration-test-docker
+            - integration-test-machine
+            - integration-test-macos
+            - integration-test-kubectl
+          filters:
+            branches:
+              only: master
