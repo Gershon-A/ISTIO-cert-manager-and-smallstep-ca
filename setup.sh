@@ -151,9 +151,11 @@ clusterissuer_installation() {
                         }
 ### CertManager installation verification
 MESSAGE="Verifying if \"cert-manager\" istalled. If not - install it" ; green_echo
-kubectl get pods --namespace cert-manager  | grep  -w Running 1> /dev/null;
+## That kubectl always return exit code 0. But we need to trigger if exit code is 1.
+## Here is probably can be a better solution to get correct exit code
+kubectl get pods --namespace cert-manager  | grep  -w Running  && exit_status=$? || exit_status=$? 
 
-if [ $? -eq 1 ] 
+if [ "$exit_status" = 1 ] 
 then
     echo ".... cert-manager Not exists ...."
     echo "Installing \"crt-manager\" ...."
