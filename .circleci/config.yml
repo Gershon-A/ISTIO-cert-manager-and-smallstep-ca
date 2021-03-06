@@ -52,7 +52,14 @@ commands:
           command: |
             curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3\
               && chmod 700 get_helm.sh
-            ./get_helm.sh          
+            ./get_helm.sh 
+  install-istio:
+    steps:
+      - run:
+          name: Install Helm 
+          command: |
+            curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.8.3 sh - \
+            istioctl install --set profile=demo -y                      
   integration-tests:
     steps:
       - checkout
@@ -138,6 +145,7 @@ jobs:
       - kubernetes/install-kubectl
       - install-helm
       - start-minikube
+      - install-istio
       - run:
           name: Deploy script
           command: |
