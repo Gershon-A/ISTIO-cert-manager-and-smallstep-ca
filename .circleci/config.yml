@@ -1,0 +1,169 @@
+version: 2.1
+
+orbs:
+  orb-tools: circleci/orb-tools@9.2.1
+  kubernetes: circleci/kubernetes@0.11.2
+
+# Pipeline parameters
+parameters:
+  # These pipeline parameters are required by the "trigger-integration-tests-workflow"
+  # job, by default.
+  run-integration-tests:
+    type: boolean
+    default: false
+  dev-orb-version:
+    type: string
+    default: "dev:alpha"
+
+executors:
+  ci-base:
+    docker:
+      - image: cimg/base:stable
+
+  machine:
+    machine: true
+
+  minikube:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      CHANGE_MINIKUBE_NONE_USER=true
+
+  macos:
+    macos:
+      xcode: "10.1.0"
+
+commands:
+  start-minikube:
+    steps:
+      - run:
+          name: Start minikube
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y conntrack
+            curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+              && chmod +x minikube
+            sudo cp minikube /usr/local/bin && rm minikube
+            sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
+  install-helm:
+    steps:
+      - run:
+          name: Install Helm 
+          command: |
+            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3\
+              && chmod 700 get_helm.sh
+            ./get_helm.sh 
+  install-istio:
+    steps:
+      - run:
+          name: Install ISTIO 
+          command: |
+            curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.9.1 sh - \
+             && cd istio-1.9.1 && ls -l
+            cp ./bin/istioctl /usr/local/bin/istioctl && chmod +x /usr/local/bin/istioctl
+            export PATH=$PWD/bin:$PATH
+            istioctl install --set profile=demo -y                      
+  integration-tests:
+    steps:
+      - checkout
+      - kubernetes/install
+      - run:
+          name: Test kops
+          command: kops version
+      - run:
+          name: Test kubectl
+          command: kubectl
+      - kubernetes/install-kubeconfig:
+          kubeconfig: MY_KUBECONFIG_DATA
+      - run:
+          name: Test kubeconfig output
+          command: |
+            [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
+  integration-tests-specific-version:
+    steps:
+      - checkout
+      - kubernetes/install:
+          kubectl-version: v1.15.2
+          kops-version: 1.12.2
+      - run:
+          name: Test kops version
+          command: kops version | grep "1.12.2"
+      - run:
+          name: Test kubectl version
+          command: |
+            set +e
+            # ignore connection refused error
+            KUBECTL_VERSION=$(kubectl version)
+            set -e
+            echo $KUBECTL_VERSION | grep "v1.15.2"
+      - kubernetes/install-kubeconfig
+      - run:
+          name: Test kubeconfig output
+          command: |
+            [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
+
+jobs:
+  integration-test-docker:
+    executor: ci-base
+    environment:
+      # For testing the install-kubeconfig command
+      MY_KUBECONFIG_DATA: dGVzdA==
+    steps:
+      - integration-tests
+
+  integration-test-machine:
+    executor: machine
+    environment:
+      # For testing the install-kubeconfig command
+      KUBECONFIG_DATA: dGVzdA==
+    steps:
+      - integration-tests-specific-version
+
+  integration-test-macos:
+    executor: macos
+    environment:
+      # For testing the install-kubeconfig command
+      MY_KUBECONFIG_DATA: dGVzdA==
+    steps:
+      - integration-tests
+
+  integration-test-kubectl:
+    executor: minikube
+    steps:
+      - checkout
+      - kubernetes/install-kubectl
+      - start-minikube
+  integration-test-helm:
+    executor: machine
+    steps:
+      - install-helm
+      - run:
+          name: Check helm version
+          command: |
+            helm version
+  deploy:
+    executor: minikube
+    steps:
+      - checkout
+      - kubernetes/install-kubectl
+      - install-helm
+      - start-minikube
+      - install-istio
+      - run:
+          name: Deploy script
+          command: |
+            ls -l; chmod +x setup.sh
+            echo "Wait 20s and Checking if installed"
+            for i in {0..20}; do echo -ne "$i"'\r'; sleep 1; done; echo 
+            kubectl get nodes
+            ./setup.sh --name-space=istio-system
+
+workflows:
+
+  integration-tests_prod-release:
+    jobs:
+      - deploy
+#      - integration-test-helm
+#      - integration-test-docker
+#      - integration-test-machine
+#      - integration-test-kubectl
