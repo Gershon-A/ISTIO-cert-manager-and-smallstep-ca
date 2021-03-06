@@ -122,12 +122,23 @@ jobs:
           name: Check helm version
           command: |
             helm version
-
+  deploy:
+    executor: machine
+    steps:
+      - checkout
+      - run:
+          name: Deploy script
+          command: |
+            ls -l; chmod +x setup.sh
+            kubectl get nodes
+            ./setup.sh --name-space=istio-system
 
 workflows:
 
   integration-tests_prod-release:
     jobs:
+      - deploy
+      - integration-test-helm
       - integration-test-docker
       - integration-test-machine
       - integration-test-kubectl
