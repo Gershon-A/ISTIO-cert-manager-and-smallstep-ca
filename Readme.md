@@ -1,3 +1,6 @@
+[![CircleCI](https://circleci.com/gh/Gershon-A/ISTIO-cert-manager-and-smallstep-ca.svg?style=svg)](https://circleci.com/gh/Gershon-A/ISTIO-cert-manager-and-smallstep-ca)
+
+
 SmallStep is a very powerful tool that can be used for many proposals and use cases.
 
 In the following example, I will show how to setup a cert-manager with a smallstep, automatically create a certificate, and configure a mutual TLS ISTIO ingress gateway.
