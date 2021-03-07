@@ -69,13 +69,13 @@ commands:
           name: App test 
           command: |
             echo "Create namespace with ISTIO sidecar"
-            kubectl.exe apply -f example/SmallStep-mutual/namespace.yaml 
+            kubectl apply -f example/SmallStep-mutual/namespace.yaml 
             echo "Create simple application deployment"
-            kubectl.exe apply -f example/SmallStep-mutual/httpbin.yaml 
+            kubectl apply -f example/SmallStep-mutual/httpbin.yaml 
             echo "Create ISTIO gateway and virtual service"
-            kubectl.exe apply -f example/SmallStep-mutual/httpbin-gateway.yaml
+            kubectl apply -f example/SmallStep-mutual/httpbin-gateway.yaml
             echo "Create certificate"
-            kubectl.exe apply -f example/SmallStep-mutual/Certificate.yaml
+            kubectl apply -f example/SmallStep-mutual/Certificate.yaml
             echo "Check, that certificate successfully issued"
             kubectl get certificates.cert-manager.io -n istio-system | grep  -w Running  && exit_status=$? || exit_status=$?"
             if [ "$exit_status" = 0 ]
@@ -92,7 +92,7 @@ jobs:
     steps:
       - kubernetes/install-kubectl
       - run:
-          name: kubectl  version
+          name: kubectl version
           command: |
             kubectl version
   integration-test-helm:
@@ -150,5 +150,5 @@ workflows:
   integration-tests_prod-release:
     jobs:
       - integration-test-helm
-      - integration-test-kubectl
+  #    - integration-test-kubectl
       - deploy
