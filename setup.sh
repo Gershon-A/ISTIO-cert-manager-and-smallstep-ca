@@ -131,15 +131,15 @@ step-issuer_instalation(){
 clusterissuer_installation() {
     echo "Get the \"kid\":"
     echo ""
-    KID=$(kubectl -n $NAME_SPACE get -o jsonpath="{.data['ca\.json']}" configmaps/step-certificates-config | jq .authority.provisioners | grep  "kid" |  awk  '{ print $2 }' | cut -f2 -d"\"")
+    export KID=$(kubectl -n $NAME_SPACE get -o jsonpath="{.data['ca\.json']}" configmaps/step-certificates-config | jq .authority.provisioners | grep  "kid" |  awk  '{ print $2 }' | cut -f2 -d"\"")
     echo "kid = $KID" | cat -v
     echo ""
 
     echo "Get the \"CABANDLE\":"
-    CABANDLE=$(kubectl -n $NAME_SPACE get -o jsonpath="{.data['root_ca\.crt']}" configmaps/step-certificates-certs | base64 |  tr -d \\n)
+    export CABANDLE=$(kubectl -n $NAME_SPACE get -o jsonpath="{.data['root_ca\.crt']}" configmaps/step-certificates-certs | base64 |  tr -d \\n)
     echo "CABANDLE = $CABANDLE" | cat -v
     echo "Get the \"CA url\":"
-    CAURL=$(kubectl -n $NAME_SPACE get -o jsonpath="{.data['defaults\.json']}" configmaps/step-certificates-config | grep -oP '(?<="ca-url": ")[^"]*')
+    export CAURL=$(kubectl -n $NAME_SPACE get -o jsonpath="{.data['defaults\.json']}" configmaps/step-certificates-config | grep -oP '(?<="ca-url": ")[^"]*')
     echo "CAURL = $CAURL" | cat -v
 
       cat src/Step-Issuer-dev.yaml | \
@@ -160,7 +160,7 @@ then
     echo ".... cert-manager Not exists ...."
     echo "Installing \"crt-manager\" ...."
         kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml
-    echo "Installing \"step-issuer\" ...."
+    echo "Installing \"SmallStep\" ...."
         issuer_result="$(step-issuer_instalation)"
         echo $issuer_result
     echo "Installing step-issuer ......"
