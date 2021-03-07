@@ -63,76 +63,38 @@ commands:
             cp ./bin/istioctl /usr/local/bin/istioctl && chmod +x /usr/local/bin/istioctl
             export PATH=$PWD/bin:$PATH
             istioctl install --set profile=demo -y                      
-  integration-tests:
+  app-test:
     steps:
-      - checkout
-      - kubernetes/install
       - run:
-          name: Test kops
-          command: kops version
-      - run:
-          name: Test kubectl
-          command: kubectl
-      - kubernetes/install-kubeconfig:
-          kubeconfig: MY_KUBECONFIG_DATA
-      - run:
-          name: Test kubeconfig output
+          name: App test 
           command: |
-            [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
-  integration-tests-specific-version:
-    steps:
-      - checkout
-      - kubernetes/install:
-          kubectl-version: v1.15.2
-          kops-version: 1.12.2
-      - run:
-          name: Test kops version
-          command: kops version | grep "1.12.2"
-      - run:
-          name: Test kubectl version
-          command: |
-            set +e
-            # ignore connection refused error
-            KUBECTL_VERSION=$(kubectl version)
-            set -e
-            echo $KUBECTL_VERSION | grep "v1.15.2"
-      - kubernetes/install-kubeconfig
-      - run:
-          name: Test kubeconfig output
-          command: |
-            [[ -f $HOME/.kube/config && ! -z $HOME/.kube/config && $(<$HOME/.kube/config) == "test" ]]
-
+            echo "Create namespace with ISTIO sidecar"
+            kubectl.exe apply -f example/SmallStep-mutual/namespace.yaml 
+            echo "Create simple application deployment"
+            kubectl.exe apply -f example/SmallStep-mutual/httpbin.yaml 
+            echo "Create ISTIO gateway and virtual service"
+            kubectl.exe apply -f example/SmallStep-mutual/httpbin-gateway.yaml
+            echo "Create certificate"
+            kubectl.exe apply -f example/SmallStep-mutual/Certificate.yaml
+            echo "Check, that certificate successfully issued"
+            kubectl get certificates.cert-manager.io -n istio-system | grep  -w Running  && exit_status=$? || exit_status=$?"
+            if [ "$exit_status" = 0 ]
+            then
+            echo "executed Successfully"
+            else
+            echo "not executed Successfully"
+            exit 1
+            fi
 jobs:
-  integration-test-docker:
-    executor: ci-base
-    environment:
-      # For testing the install-kubeconfig command
-      MY_KUBECONFIG_DATA: dGVzdA==
-    steps:
-      - integration-tests
-
-  integration-test-machine:
-    executor: machine
-    environment:
-      # For testing the install-kubeconfig command
-      KUBECONFIG_DATA: dGVzdA==
-    steps:
-      - integration-tests-specific-version
-
-  integration-test-macos:
-    executor: macos
-    environment:
-      # For testing the install-kubeconfig command
-      MY_KUBECONFIG_DATA: dGVzdA==
-    steps:
-      - integration-tests
 
   integration-test-kubectl:
-    executor: minikube
+    executor: machine
     steps:
-      - checkout
       - kubernetes/install-kubectl
-      - start-minikube
+      - run:
+          name: kubectl  version
+          command: |
+            kubectl version
   integration-test-helm:
     executor: machine
     steps:
@@ -180,14 +142,13 @@ jobs:
               sed "s/KID/$KID/" | \
               sed "s#CAURL#$CAURL#" | \
               kubectl apply -f - ;
-#            ./setup.sh --name-space=istio-system
+#            ./setup.sh --name-space=istio-system --force
+      - app-test
 
 workflows:
 
   integration-tests_prod-release:
     jobs:
+      - integration-test-helm
+      - integration-test-kubectl
       - deploy
-#      - integration-test-helm
-#      - integration-test-docker
-#      - integration-test-machine
-#      - integration-test-kubectl
