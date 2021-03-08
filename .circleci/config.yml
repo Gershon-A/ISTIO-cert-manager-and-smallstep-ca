@@ -77,14 +77,14 @@ commands:
             echo "Create certificate"
             kubectl apply -f example/SmallStep-mutual/Certificate.yaml
             echo "Check, that certificate successfully issued"
-            kubectl get certificates.cert-manager.io -n istio-system | grep  -w Running  && exit_status=$? || exit_status=$?
-            if [ "$exit_status" = 0 ]
+            kubectl get certificates.cert-manager.io -n istio-system
+            STATUS=(kubectl get certificates.cert-manager.io -n istio-system httpbin-m-certificate -o json | jq -r '.status.conditions[].status')
+            if [[ "${STATUS}" != "True"  ]]
             then
-            echo "executed Successfully"
+            echo "Something is going wrong. Please investigate: kubectl describe stepissuers.certmanager.step.sm -n $NAME_SPACE "
             else
-            echo "not executed Successfully"
-            exit 1
-            fi
+            echo "We are OK."
+            fi   
 jobs:
 
   integration-test-kubectl:
