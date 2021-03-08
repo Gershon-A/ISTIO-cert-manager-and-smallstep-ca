@@ -77,7 +77,7 @@ commands:
             echo "Create certificate"
             kubectl apply -f example/SmallStep-mutual/Certificate.yaml
             echo "Check, that certificate successfully issued"
-            kubectl get certificates.cert-manager.io -n istio-system | grep  -w Running  && exit_status=$? || exit_status=$?"
+            kubectl get certificates.cert-manager.io -n istio-system | grep  -w Running  && exit_status=$? || exit_status=$?
             if [ "$exit_status" = 0 ]
             then
             echo "executed Successfully"
