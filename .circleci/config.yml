@@ -40,7 +40,7 @@ commands:
           name: Start minikube
           command: |
             sudo apt-get update
-            sudo apt-get install -y conntrack
+            sudo apt-get install -y conntrack jq
             curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
               && chmod +x minikube
             sudo cp minikube /usr/local/bin && rm minikube
@@ -79,7 +79,7 @@ commands:
             echo "Check, that certificate successfully issued"
             kubectl get certificates.cert-manager.io -n istio-system
             STATUS=(kubectl get certificates.cert-manager.io -n istio-system httpbin-m-certificate -o json | jq -r '.status.conditions[].status')
-            if [[ "${STATUS}" != "True"  ]]
+            if [[ "$STATUS" != "True"  ]]
             then
             echo "Something is going wrong. Please investigate: kubectl describe stepissuers.certmanager.step.sm -n $NAME_SPACE "
             else
