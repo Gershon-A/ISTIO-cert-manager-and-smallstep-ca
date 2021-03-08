@@ -44,7 +44,7 @@ commands:
             curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
               && chmod +x minikube
             sudo cp minikube /usr/local/bin && rm minikube
-            sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
+            sudo -E minikube start --kubernetes-version=v1.19.6 --vm-driver=none --cpus 2 --memory 2048
   install-helm:
     steps:
       - run:
