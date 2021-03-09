@@ -1,4 +1,5 @@
-[![CircleCI](https://circleci.com/gh/Gershon-A/ISTIO-cert-manager-and-smallstep-ca.svg?style=svg)](https://circleci.com/gh/Gershon-A/ISTIO-cert-manager-and-smallstep-ca)
+[![Test CircleCI](https://circleci.com/gh/Gershon-A/ISTIO-cert-manager-and-smallstep-ca.svg?style=svg)](https://circleci.com/gh/Gershon-A/ISTIO-cert-manager-and-smallstep-ca)
+[![Test using KinD](https://github.com/Gershon-A/ISTIO-cert-manager-and-smallstep-ca/actions/workflows/test.yml/badge.svg)](https://github.com/Gershon-A/ISTIO-cert-manager-and-smallstep-ca/actions/workflows/test.yml)
 
 
 SmallStep is a very powerful tool that can be used for many proposals and use cases.
