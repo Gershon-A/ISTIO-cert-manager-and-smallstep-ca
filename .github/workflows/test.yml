@@ -2,7 +2,7 @@ name: "Create cluster using KinD"
 on: [pull_request, push]
 
 jobs:
-  kind:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
