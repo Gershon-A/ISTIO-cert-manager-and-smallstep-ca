@@ -159,7 +159,7 @@ if [ "$exit_status" = 1 ]
 then
     echo ".... cert-manager Not exists ...."
     echo "Installing \"crt-manager\" ...."
-        kubectl apply -f kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.2.0/cert-manager.yaml
+        kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.2.0/cert-manager.yaml
     echo "Installing \"SmallStep\" ...."
         issuer_result="$(step-issuer_instalation)"
         echo $issuer_result
