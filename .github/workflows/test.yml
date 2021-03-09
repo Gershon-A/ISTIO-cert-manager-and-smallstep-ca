@@ -24,3 +24,22 @@ jobs:
         run: |
           ls -l; chmod +x setup.sh
           ./setup.sh --name-space=istio-system --force
+      - name: Test Installation  
+        run: |
+            echo "Create namespace with ISTIO sidecar"
+            kubectl apply -f example/SmallStep-mutual/namespace.yaml 
+            echo "Create simple application deployment"
+            kubectl apply -f example/SmallStep-mutual/httpbin.yaml 
+            echo "Create ISTIO gateway and virtual service"
+            kubectl apply -f example/SmallStep-mutual/httpbin-gateway.yaml
+            echo "Create certificate"
+            kubectl apply -f example/SmallStep-mutual/Certificate.yaml
+            echo "Check, that certificate successfully issued"
+            kubectl get certificates.cert-manager.io -n istio-system
+            STATUS=$(kubectl get certificates.cert-manager.io -n istio-system httpbin-m-certificate -o json | jq -r '.status.conditions[].status')
+            if [[ "$STATUS" != "True"  ]]
+            then
+            echo "Something is going wrong. Please investigate: kubectl describe stepissuers.certmanager.step.sm -n $NAME_SPACE "
+            else
+            echo "We are OK."
+            fi       
