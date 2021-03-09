@@ -7,9 +7,20 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - uses: engineerd/setup-kind@v0.5.0
-      - name: Testing
+      - name: Cluster Info
         run: |
           kubectl cluster-info
           kubectl get pods -n kube-system
           echo "current-context:" $(kubectl config current-context)
           echo "environment-kubeconfig:" ${KUBECONFIG}
+      - name: Install ISTIO 
+        run: |
+          curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.9.1 sh - \
+           && cd istio-1.9.1 && ls -l
+          cp ./bin/istioctl /usr/local/bin/istioctl && chmod +x /usr/local/bin/istioctl
+          export PATH=$PWD/bin:$PATH
+          istioctl install --set profile=demo -y         
+      - name: Deploy  
+        run: |
+          ls -l; chmod +x setup.sh
+          ./setup.sh --name-space=istio-system --force
